@@ -1,0 +1,107 @@
+name: Daily English Push
+
+on:
+  schedule:
+    # BBC 早间推送：北京时间 7:00 = UTC 23:00 (前一天)
+    - cron: '0 23 * * *'
+    # Reuters 晚间推送：北京时间 21:30 = UTC 13:30
+    - cron: '30 13 * * *'
+    # 周报推送：北京时间 周日 22:00 = UTC 14:00 (周日)
+    - cron: '0 14 * * 0'
+  workflow_dispatch:
+    inputs:
+      task:
+        description: 'Task to run: bbc, reuters, or weekly'
+        required: true
+        default: 'bbc'
+
+jobs:
+  bbc-morning:
+    if: github.event_name == 'schedule' && github.event.schedule == '0 23 * * *' || github.event.inputs.task == 'bbc'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt
+          
+      - name: Run BBC push
+        env:
+          DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
+          SERVERCHAN_SENDKEY: ${{ secrets.SERVERCHAN_SENDKEY }}
+        run: |
+          python src/main.py --task bbc
+          
+      - name: Commit daily data
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git add data/daily/ 2>/dev/null || true
+          git diff --quiet && git diff --staged --quiet || git commit -m "Add BBC daily data $(date +%Y-%m-%d)"
+          git push
+
+  reuters-evening:
+    if: github.event_name == 'schedule' && github.event.schedule == '30 13 * * *' || github.event.inputs.task == 'reuters'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt
+          
+      - name: Run Reuters push
+        env:
+          DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
+          SERVERCHAN_SENDKEY: ${{ secrets.SERVERCHAN_SENDKEY }}
+        run: |
+          python src/main.py --task reuters
+          
+      - name: Commit daily data
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git add data/daily/ 2>/dev/null || true
+          git diff --quiet && git diff --staged --quiet || git commit -m "Add Reuters daily data $(date +%Y-%m-%d)"
+          git push
+
+  weekly-summary:
+    if: github.event_name == 'schedule' && github.event.schedule == '0 14 * * 0' || github.event.inputs.task == 'weekly'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt
+          
+      - name: Run weekly summary
+        env:
+          DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
+          SERVERCHAN_SENDKEY: ${{ secrets.SERVERCHAN_SENDKEY }}
+        run: |
+          python src/main.py --task weekly
+          
+      - name: Commit weekly data
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git add data/weekly/ 2>/dev/null || true
+          git diff --quiet && git diff --staged --quiet || git commit -m "Add weekly summary $(date +%Y-W%V)"
+          git push
