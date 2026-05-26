@@ -15,6 +15,9 @@ on:
         required: true
         default: 'bbc'
 
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
 jobs:
   bbc-morning:
     if: github.event_name == 'schedule' && github.event.schedule == '0 23 * * *' || github.event.inputs.task == 'bbc'
