@@ -21,6 +21,12 @@ class LocalStore:
         """检查记录是否存在"""
         return self._get_file_path(key).exists()
     
+    def exists_today(self, source: str) -> bool:
+        """检查今天是否已推送该来源的文章"""
+        today = datetime.now().strftime('%Y-%m-%d')
+        today_file = self.data_dir / f"{source}_{today}.json"
+        return today_file.exists()
+    
     def save(self, key: str, data: Dict) -> bool:
         """保存记录"""
         try:
@@ -32,6 +38,12 @@ class LocalStore:
         except Exception as e:
             logger.exception(f"保存失败: {e}")
             return False
+    
+    def save_today(self, source: str, data: Dict) -> bool:
+        """保存今日推送记录"""
+        today = datetime.now().strftime('%Y-%m-%d')
+        key = f"{source}_{today}"
+        return self.save(key, data)
     
     def load(self, key: str) -> Optional[Dict]:
         """加载记录"""

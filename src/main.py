@@ -33,15 +33,16 @@ def run_bbc():
         pusher = ServerChanPusher()
         store = LocalStore(DATA_DIR / 'daily')
         
+        # 检查今天是否已推送BBC
+        if store.exists_today('bbc'):
+            logger.info("今天已推送BBC文章，跳过")
+            return True
+        
         article = fetcher.fetch_latest()
         if not article:
             logger.error("未能获取BBC文章")
             pusher.push_error("BBC推送失败", "未能获取最新文章")
             return False
-        
-        if store.exists(article['id']):
-            logger.info(f"文章已推送过: {article['id']}")
-            return True
         
         content = llm.generate_bbc_content(article)
         if not content:
@@ -49,13 +50,14 @@ def run_bbc():
             pusher.push_error("BBC推送失败", "AI生成内容失败")
             return False
         
+        today = datetime.now().strftime('%Y-%m-%d')
         success = pusher.push(
-            title=f"BBC Learning English - {datetime.now().strftime('%Y-%m-%d')}",
+            title=f"BBC Learning English - {today}",
             content=content
         )
         
         if success:
-            store.save(article['id'], {
+            store.save_today('bbc', {
                 'source': 'bbc',
                 'title': article.get('title', ''),
                 'url': article.get('url', ''),
@@ -83,15 +85,16 @@ def run_reuters():
         pusher = ServerChanPusher()
         store = LocalStore(DATA_DIR / 'daily')
         
+        # 检查今天是否已推送Reuters
+        if store.exists_today('reuters'):
+            logger.info("今天已推送Reuters文章，跳过")
+            return True
+        
         article = fetcher.fetch_latest()
         if not article:
             logger.error("未能获取Reuters文章")
             pusher.push_error("Reuters推送失败", "未能获取最新新闻")
             return False
-        
-        if store.exists(article['id']):
-            logger.info(f"文章已推送过: {article['id']}")
-            return True
         
         content = llm.generate_reuters_content(article)
         if not content:
@@ -99,13 +102,14 @@ def run_reuters():
             pusher.push_error("Reuters推送失败", "AI生成内容失败")
             return False
         
+        today = datetime.now().strftime('%Y-%m-%d')
         success = pusher.push(
-            title=f"Reuters晚间新闻 - {datetime.now().strftime('%Y-%m-%d')}",
+            title=f"国际新闻英文阅读 - {today}",
             content=content
         )
         
         if success:
-            store.save(article['id'], {
+            store.save_today('reuters', {
                 'source': 'reuters',
                 'title': article.get('title', ''),
                 'url': article.get('url', ''),
